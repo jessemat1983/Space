@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Spaceward Echo</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+  <div id="lobby">
+    <h2>Join or Create Room</h2>
+    <input id="roomInput" placeholder="Room code" />
+    <button id="joinBtn">Join</button>
+    <p id="status"></p>
+  </div>
+  <canvas id="gameCanvas" width="800" height="600" style="display:none;"></canvas>
+  <div id="hud" style="display:none;">
+    <button id="buildBtn">Build Ship (+1)</button>
+    <button id="endTurnBtn">End Turn</button>
+    <p id="info"></p>
+  </div>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
