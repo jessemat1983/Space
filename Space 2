@@ -1,0 +1,79 @@
+const express = require('express');
+const app = express();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
+
+const PORT = process.env.PORT || 3000;
+
+app.use(express.static('public'));
+
+const games = {};
+
+function createNewGame(room) {
+  games[room] = {
+    players: [],
+    state: {
+      turn: 0,
+      planets: [
+        { id: 0, owner: 0, ships: 50, x: 100, y: 200 },
+        { id: 1, owner: 1, ships: 50, x: 500, y: 300 },
+        { id: 2, owner: -1, ships: 20, x: 300, y: 400 },
+        { id: 3, owner: -1, ships: 10, x: 700, y: 100 }
+      ]
+    }
+  };
+}
+
+io.on('connection', socket => {
+  let currentRoom = null;
+  let playerIndex = null;
+
+  socket.on('joinRoom', room => {
+    currentRoom = room;
+    if (!games[room]) createNewGame(room);
+    const game = games[room];
+
+    if (game.players.length < 2) {
+      playerIndex = game.players.length;
+      game.players.push(socket.id);
+      socket.join(room);
+      socket.emit('playerIndex', playerIndex);
+      io.to(room).emit('gameState', game.state);
+    } else {
+      socket.emit('roomFull');
+    }
+  });
+
+  socket.on('playerAction', action => {
+    const game = games[currentRoom];
+    if (!game) return;
+
+    if (action.type === 'build') {
+      const planet = game.state.planets.find(p => p.id === action.planetId);
+      if (planet && planet.owner === playerIndex) {
+        planet.ships += 1;
+        io.to(currentRoom).emit('gameState', game.state);
+      }
+    }
+
+    if (action.type === 'endTurn') {
+      game.state.turn = (game.state.turn + 1) % 2;
+      io.to(currentRoom).emit('gameState', game.state);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    if (!currentRoom) return;
+    const game = games[currentRoom];
+    if (!game) return;
+    const idx = game.players.indexOf(socket.id);
+    if (idx !== -1) {
+      game.players.splice(idx, 1);
+      io.to(currentRoom).emit('playerLeft', idx);
+    }
+  });
+});
+
+http.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+});
